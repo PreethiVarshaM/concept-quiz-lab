@@ -17,5 +17,5 @@ The quiz pages are intentionally plain HTML, CSS, and JavaScript, so they can be
 
 ## Current series
 
-- **Java Multithreading & Concurrency** — 8 chapters, 32 questions, a staged optimization workshop, and links to eight LeetCode concurrency problems.
+- **Java Multithreading & Concurrency** — 8 chapters and 32 questions. The separate [Interview Optimization Lab](quizzes/java-concurrency-interview-lab.html) contains the staged workshop and links to eight LeetCode concurrency problems.
 - **Angular Caching** — 4 chapters, 16 starter questions covering general caching concepts.
