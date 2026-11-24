@@ -77,6 +77,11 @@ try {
 }</code></pre><p>In a real HTTP client, also set connect/read/request timeouts. Cancellation is cooperative; the fetch operation must respond to interruption or its own timeout. For unbounded input, use backpressure or a bounded <code>ThreadPoolExecutor</code> queue instead of enqueueing every task.</p></details>
       <details class="stage"><summary>Stage 5 · Measure again and discuss the tradeoffs</summary><ul><li>Compare the same workload before and after. Track throughput and p50/p95 latency, not only one total runtime.</li><li>Watch pool saturation, queue depth, remote-service throttling, failures, and memory.</li><li>Try a few pool sizes; eight is a starting hypothesis, not a universal optimum.</li><li>State the tradeoff: more parallel calls may reduce this caller’s wait while increasing load on the dependency.</li></ul><p><strong>Interview close:</strong> summarize the bottleneck, correctness guarantees, failure behavior, and what you would measure in production.</p></details>
     </section>
+    <section class="pool-demo" aria-labelledby="poolDemoTitle"><div class="workshop-kicker">See it simply</div><h2 id="poolDemoTitle">Tasks go in. Workers do the work.</h2><p class="pool-intro">A <strong>task</strong> is the work to do. A <strong>thread</strong> is a worker that runs it. Compare six tasks started as six separate threads with the same tasks handled by an executor that reuses three worker threads.</p><div class="diagram-grid">
+      <article class="diagram-card"><h3>Starting one thread for each task</h3><p>Six tasks create six threads. Each thread does one task, then ends.</p><div class="spawn-row"><span class="task-box">Task 1</span><span class="arrow" aria-hidden="true">→</span><span class="thread-box">Thread 1 · start → work → end</span></div><div class="spawn-row"><span class="task-box">Task 2</span><span class="arrow" aria-hidden="true">→</span><span class="thread-box">Thread 2 · start → work → end</span></div><div class="spawn-row"><span class="task-box">Task 3</span><span class="arrow" aria-hidden="true">→</span><span class="thread-box">Thread 3 · start → work → end</span></div><div class="spawn-row"><span class="task-box">Task 4</span><span class="arrow" aria-hidden="true">→</span><span class="thread-box">Thread 4 · start → work → end</span></div><div class="spawn-row"><span class="task-box">Task 5</span><span class="arrow" aria-hidden="true">→</span><span class="thread-box">Thread 5 · start → work → end</span></div><div class="spawn-row"><span class="task-box">Task 6</span><span class="arrow" aria-hidden="true">→</span><span class="thread-box">Thread 6 · start → work → end</span></div><p class="pool-takeaway">Simple to picture, but creating many threads adds overhead. Too many can exhaust system resources.</p></article>
+      <article class="diagram-card"><h3>Submitting tasks to an executor</h3><p>The pool creates three workers. They take tasks from a queue and are reused.</p><div class="pool-queue"><span class="mini-label">Waiting in the task queue</span><span id="queueTask4" class="task-chip">Task 4</span><span id="queueTask5" class="task-chip">Task 5</span><span id="queueTask6" class="task-chip">Task 6</span></div><div class="worker-lanes" id="workerLanes" aria-label="Executor worker threads"></div><div class="completed-tasks"><span class="mini-label">Completed</span><span id="doneTasks" class="task-chip">None yet</span></div><div class="demo-controls"><button class="demo-button" id="runBatch">Complete batch 1</button><button class="demo-button secondary" id="resetDemo">Reset diagram</button></div><p class="demo-status" id="demoStatus" aria-live="polite"></p><p class="pool-takeaway"><strong>Key idea:</strong> the executor manages worker threads; submitted tasks wait in a queue until a worker is free.</p></article>
+    </div></section>
+
     <section class="practice" aria-labelledby="practiceTitle"><div class="practice-kicker">Practice beyond the quiz</div><h2 id="practiceTitle">Multithreading interview problems</h2><p class="practice-intro">Work from coordination primitives toward shared-state design. For each problem, state the invariant, choose the synchronization tool, handle interruption, and explain why the solution cannot deadlock or miss a signal. Some LeetCode problems may require Premium access.</p><div class="problem-list">
       <a class="problem" href="https://leetcode.com/problems/print-in-order/" target="_blank" rel="noopener noreferrer"><strong>1114 · Print in Order</strong><span>Enforce a sequence with semaphores, latches, or conditions.</span><span class="level">Easy · ordering</span></a>
       <a class="problem" href="https://leetcode.com/problems/print-foobar-alternately/" target="_blank" rel="noopener noreferrer"><strong>1115 · Print FooBar Alternately</strong><span>Coordinate two repeating actions across two threads.</span><span class="level">Medium · signaling</span></a>
@@ -89,5 +94,22 @@ try {
     </div></section>
     <p class="footnote"><a href="java-concurrency.html">Return to the Java multithreading quiz ↗</a></p>
   </main>
+  <script>
+    const $=id=>document.getElementById(id);
+    let poolRound=0;
+    function renderPoolDemo(){
+      const jobs=poolRound===0?['Task 1','Task 2','Task 3']:poolRound===1?['Task 4','Task 5','Task 6']:[null,null,null];
+      $('workerLanes').innerHTML=jobs.map((job,i)=>`<div class="worker-lane ${job?'busy':''}"><strong>Worker ${i+1} · thread</strong><span>${job?`Working on ${job}`:'Available for another task'}</span></div>`).join('');
+      [4,5,6].forEach((task)=>{$(`queueTask${task}`).hidden=poolRound>0});
+      const done=poolRound===0?[]:poolRound===1?[1,2,3]:[1,2,3,4,5,6];
+      $('doneTasks').textContent=done.length?done.map(n=>`Task ${n}`).join(' · '):'None yet';
+      $('runBatch').disabled=poolRound>=2;
+      $('runBatch').textContent=poolRound===0?'Complete tasks 1–3':poolRound===1?'Complete tasks 4–6':'All tasks complete';
+      $('demoStatus').textContent=poolRound===0?'Three worker threads are running tasks 1–3. Tasks 4–6 are waiting in the queue.':poolRound===1?'The same three workers finished their first tasks and picked up tasks 4–6.':'All six tasks are complete. The pool still has the same three worker threads, ready for more work.';
+    }
+    $('runBatch').addEventListener('click',()=>{if(poolRound<2){poolRound++;renderPoolDemo()}});
+    $('resetDemo').addEventListener('click',()=>{poolRound=0;renderPoolDemo()});
+    renderPoolDemo();
+  </script>
 </body>
 </html>
