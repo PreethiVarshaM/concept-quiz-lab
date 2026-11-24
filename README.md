@@ -19,5 +19,3 @@ The quiz pages are intentionally plain HTML, CSS, and JavaScript, so they can be
 
 - **Java Multithreading & Concurrency** — 7 chapters, 28 questions.
 - **Angular Caching** — 4 chapters, 16 starter questions covering general caching concepts.
-
-The Angular set is a starter series. Review its wording against the specific article you publish before sharing it as an article companion.
